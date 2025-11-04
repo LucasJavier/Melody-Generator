@@ -1,0 +1,5 @@
+python -u melody_ea.py train --good-dir .\midi_files --out-model mlp.pkl --negatives-per-good 1 --limit 30 --show-progress
+
+python -u melody_ea.py evolve --out-midi best_mlp.mid --mode minor --bars 8 --pop-size 60 --generations 80 --model mlp.pkl --w-rules 0.5 --w-mlp 0.5 --verbose
+
+python prueba.py --demo-bach bach.mid --out-midi bach_norm.mid --out-json bach.json
