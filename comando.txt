@@ -3,3 +3,59 @@ python -u melody_ea.py train --good-dir .\midi_files --out-model mlp.pkl --negat
 python -u melody_ea.py evolve --out-midi best_mlp.mid --mode minor --bars 8 --pop-size 60 --generations 80 --model mlp.pkl --w-rules 0.5 --w-mlp 0.5 --verbose
 
 python prueba.py --demo-bach bach.mid --out-midi bach_norm.mid --out-json bach.json
+
+-------------------------------------------------------------------------------------------------------------------
+
+1) Entrenar MLP con una carpeta de MIDIs buenos y generar negativos por data augmentation: 
+
+python melody_ea.py --train --good-dir ./midis_buenos --out-model mlp.pkl --negatives-per-good 3 
+
+2) Analizar un MIDI y calcular fitness por reglas y (opcional) score MLP: 
+
+python melody_ea.py --analyze ./ejemplo.mid --model mlp.pkl 
+
+3) Generar un individuo aleatorio de 8 compases y guardarlo a MIDI: 
+
+python melody_ea.py --gen-random --out-midi random.mid --mode major --qpm 96
+
+-------------------------------------------------------------------------------------------------------------------
+
+1) Dumps:
+
+# Dump con negativos "difíciles" (sutiles)
+
+python melody_ea.py dump-dataset --good-dir .\midi_files --out .\dumps\dataset_hard.npz --negatives-per-good 2 --seed 42 --hard-negatives --show-progress
+
+# Dump con negativos "fáciles"
+
+python melody_ea.py dump-dataset --good-dir .\midi_files --out .\dumps\dataset_easy.npz --negatives-per-good 2 --seed 42 --show-progress
+
+2) Entrenar:
+
+# Entrenar modelo fácil
+
+python melody_ea.py train-from-dump --dump .\dumps\dataset_easy.npz --out-model .\models\mlp_easy.pkl
+
+# Entrenar modelo dificil
+
+python melody_ea.py train-from-dump --dump .\dumps\dataset_hard.npz --out-model .\models\mlp_hard.pkl
+
+3) Analizar:
+
+# Fácil
+
+python melody_ea.py report-from-dump --dump .\dumps\dataset_easy.npz --folds 5 --plots
+
+# Difícil
+
+python melody_ea.py report-from-dump --dump .\dumps\dataset_hard.npz --folds 5 --plots
+
+4) Generar melodía por evolución:
+
+# Con fácil
+
+python -u melody_ea.py evolve --out-midi out\best_mlp.mid --mode minor --bars 8 --pop-size 60 --generations 80 --model mlp_easy.pkl --w-rules 0.5 --w-mlp 0.5 --verbose
+
+# Con dificil
+
+python -u melody_ea.py evolve --out-midi out\best_mlp.mid --mode minor --bars 8 --pop-size 60 --generations 80 --model mlp_hard.pkl --w-rules 0.5 --w-mlp 0.5 --verbose
