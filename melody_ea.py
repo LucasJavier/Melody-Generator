@@ -395,17 +395,17 @@ def _ngram_repetition_score(sequence: List[int|float], n: int = 3) -> float:
 # Calcula y devuelve la cantidad de tie, staccato, acentos y entropia de articulaciones hay
 def _expressive_features(ev: List[Event]) -> dict:
     ties = sum(1 for e in ev if e.tie in ('start','continue','stop'))
-    arts = [a for e in ev for a in (e.articulations or []) if a]
+    # arts = [a for e in ev for a in (e.articulations or []) if a]
     n = len(ev) or 1
-    art_hist = Counter(arts); 
-    tot = sum(art_hist.values()) or 1
-    H = -sum((c/tot)*math.log((c/tot)+1e-12) for c in art_hist.values()) if tot>0 else 0.0
+    # art_hist = Counter(arts); 
+    # tot = sum(art_hist.values()) or 1
+    # H = -sum((c/tot)*math.log((c/tot)+1e-12) for c in art_hist.values()) if tot>0 else 0.0
     return {
         "tie_ratio": ties / n,
-        "staccato_ratio": (arts.count('staccato')/tot) if tot else 0.0,
-        "tenuto_ratio": (arts.count('tenuto')/tot)   if tot else 0.0, 
-        "accent_ratio": (arts.count('accent')/tot) if tot else 0.0,
-        "articulation_entropy": H
+        # "staccato_ratio": (arts.count('staccato')/tot) if tot else 0.0,
+        # "tenuto_ratio": (arts.count('tenuto')/tot)   if tot else 0.0, 
+        # "accent_ratio": (arts.count('accent')/tot) if tot else 0.0,
+        # "articulation_entropy": H
     }
 
 def length_alignment_score(total_qL: float, bars: int, ts_str: str = "4/4", tol: float = 0.05) -> float:
@@ -417,6 +417,31 @@ def length_alignment_score(total_qL: float, bars: int, ts_str: str = "4/4", tol:
     # caída suave (gaussiana), rel_err = tol  => ~0.37 si tol es estricto,
     # para caida mas suave: max(0, 1 - (rel_err/tol)**2)
     return float(math.exp(- (rel_err / max(tol, 1e-9))**2))
+
+# ----------------------------------------------------------------------------------------------
+
+def _runs_same_pitch(ev: List[Event]) -> Tuple[int,int,float]:
+    last = None; run = 0; max_run = 0
+    notes = [e.pitch for e in ev if e.pitch is not None]
+    if not notes: return 0, 0, 0.0
+    for p in notes:
+        if p == last: run += 1
+        else:
+            max_run = max(max_run, run)
+            run = 1
+            last = p
+    max_run = max(max_run, run)
+    # run final:
+    tail_run = 1
+    for i in range(len(notes)-2, -1, -1):
+        if notes[i] == notes[-1]:
+            tail_run += 1
+        else:
+            break
+    same_ratio = max_run / max(1, len(notes))
+    return int(max_run), int(tail_run), float(same_ratio)
+
+# ----------------------------------------------------------------------------------------------
 
 
 # Obtenemos todas las metricas
@@ -445,6 +470,12 @@ def compute_features(ind: Individual, key_obj: m21key.Key) -> Dict[str, Any]:
     rep_contour3 = _ngram_repetition_score([int(x) for x in int_sign], n=3)
     dur_seq = [e.duration_qL for e in ev if not e.is_rest]
     rep_dur3 = _ngram_repetition_score(dur_seq, n=3)
+
+    # ------------------------------------------------------------------------------
+
+    max_run, tail_run, same_ratio = _runs_same_pitch(ev)
+
+    # ------------------------------------------------------------------------------
 
     # reconstruir Part para metodo aligment (que tan cuadrada o no la melodia)
     # y expresividad (metodo expressive)
@@ -482,6 +513,11 @@ def compute_features(ind: Individual, key_obj: m21key.Key) -> Dict[str, Any]:
         "meter_alignment": align
     }
     base.update(expr)   # mezcla las expresivas
+    base.update({
+        "same_pitch_run_max": float(max_run),
+        "same_pitch_run_tail": float(tail_run),
+        "same_pitch_ratio": same_ratio,
+    })
     return base
 
 FEATURE_ORDER = [
@@ -496,10 +532,13 @@ FEATURE_ORDER = [
     "rep_ngram3_durations",
     "meter_alignment",
     "tie_ratio",
-    "staccato_ratio",
-    "tenuto_ratio", 
-    "accent_ratio",
-    "articulation_entropy",
+    "same_pitch_run_max",
+    "same_pitch_run_tail",
+    "same_pitch_ratio"
+    # "staccato_ratio",
+    # "tenuto_ratio", 
+    # "accent_ratio",
+    # "articulation_entropy",
 ]
 
 def features_to_vector(feat: Dict[str, Any]) -> np.ndarray:
@@ -510,7 +549,7 @@ def features_to_vector(feat: Dict[str, Any]) -> np.ndarray:
 # Devuelve el valor de fitness pesado
 def rule_based_fitness(feat: Dict[str, Any]) -> float:
     """Escalar sencillo combinando objetivos razonables (ajustá a gusto)."""
-    scale_fit = feat["scale_fit"]
+    # scale_fit = feat["scale_fit"]
     step_ratio = feat["step_ratio_leq5st"]
     align = feat["meter_alignment"]
     ent = feat["duration_entropy_norm"]
@@ -520,27 +559,33 @@ def rule_based_fitness(feat: Dict[str, Any]) -> float:
     rest_r = feat["rest_ratio"]
     range_s = feat["range_semitones"]
     tie_r = feat.get("tie_ratio", 0.0)
-    stac_r = feat.get("staccato_ratio", 0.0)
-    acc_r  = feat.get("accent_ratio", 0.0)
-    art_H  = feat.get("articulation_entropy", 0.0)
-    ten_r  = feat.get("tenuto_ratio", 0.0)
+    # stac_r = feat.get("staccato_ratio", 0.0)
+    # acc_r  = feat.get("accent_ratio", 0.0)
+    # art_H  = feat.get("articulation_entropy", 0.0)
+    # ten_r  = feat.get("tenuto_ratio", 0.0)
+    max_run = feat.get("same_pitch_run_max", 0.0)
+    tail_run = feat.get("same_pitch_run_tail", 0.0)
+    same_ratio = feat.get("same_pitch_ratio", 0.0)
 
     score = (
-        0.25*scale_fit
-      + 0.15*step_ratio
-      + 0.15*align
+        # 0.25*scale_fit
+      + 0.25*step_ratio
+      + 0.20*align
       + 0.15*(1 - abs(ent - 0.6))
-      + 0.10*(1 - min(mean_int/6.0, 1.0))
-      + 0.10*(1 - abs(rep_dur - 0.6))
-      + 0.10*(1 - abs(rep_cont - 0.7))
-      - 0.05*rest_r
-      - 0.10*max(0.0, (range_s - 12) / 12.0)  # penaliza exceder 1 octava
+      + 0.15*(1 - min(mean_int/6.0, 1.0))
+      + 0.20*(1 - abs(rep_dur - 0.6))
+      + 0.20*(1 - abs(rep_cont - 0.7))
+      - 0.20*rest_r
+      - 0.03*max(0.0, (range_s - 12) / 12.0)  # penaliza exceder 1 octava
     )
     score += 0.05 * min(tie_r, 0.2)             # un poco de ligaduras
-    score += 0.03 * (1 - abs(stac_r - 0.15))    # algo de staccato, no excesivo
-    score += 0.02 * (1 - abs(acc_r  - 0.10))    # acentos moderados
-    score += 0.03 * (1 - abs(art_H - 0.5))      # variedad razonable
-    score += 0.02 * (1 - abs(ten_r - 0.10))     # algo de tenuto
+    # score += 0.03 * (1 - abs(stac_r - 0.15))    # algo de staccato, no excesivo
+    # score += 0.02 * (1 - abs(acc_r  - 0.10))    # acentos moderados
+    # score += 0.03 * (1 - abs(art_H - 0.5))      # variedad razonable
+    # score += 0.02 * (1 - abs(ten_r - 0.10))     # algo de tenuto
+    score -= 0.05 * min(1.0, same_ratio)            # evita runs largos relativos
+    score -= 0.03 * max(0.0, (max_run - 3) / 8.0)   # tolera hasta 3 iguales seguidos
+    score -= 0.04 * max(0.0, (tail_run - 4) / 8.0)  # castiga que termine repetitiva (tolera hasta 4)
     return float(score)
 
 
@@ -950,10 +995,16 @@ def score_with_model(feats: Dict[str, Any], model_path: str | pathlib.Path) -> f
 
 # Gen aleatorio
 def random_gene(mode: str) -> Gene:
+
+    # pesos por índice: [0.25, 0.5, 1.0, 2.0] 
+    dur_weights = [0.25, 0.40, 0.30, 0.10] 
+
+    durIdx = random.choices(range(len(DUR_TABLE)), weights=dur_weights, k=1)[0]
+
     return Gene(
         degree=random.randint(0, 6),
         octShift=random.randint(-1, 1),
-        durIdx=random.randint(0, len(DUR_TABLE)-1),
+        durIdx=durIdx,
         isRest=(random.random() < 0.10),
         velIdx=random.randint(0, len(VEL_TABLE)-1),
         tieFlag=None,
@@ -994,7 +1045,7 @@ class EAConfig:
     generations: int = 60
     # seleccion y reproduccion
     tournament_k: int = 3
-    elitism: int = 2
+    elitism: int = 3
     # tasa de cruza y mutacion
     crossover_rate: float = 0.9
     mutation_rate: float = 0.25
@@ -1015,8 +1066,8 @@ class EAConfig:
     expressive_thr: float = 0.65  # si fitness ≥ thr, habilita ties/articulations en fenotipado
     seed: Optional[int] = 42
     # mezcla fitness
-    w_rules: float = 0.6
-    w_mlp: float = 0.4
+    w_rules: float = 0.55
+    w_mlp: float = 0.35
     w_len: float = 0.10           # peso del término de longitud
     len_tol: float = 0.05         # tolerancia relativa (5% del objetivo)
     model_path: Optional[str] = None
@@ -1083,7 +1134,7 @@ def mutate_genome(g: Genome, conf: EAConfig) -> Genome:
             ]
 
     # inserción/eliminación (estructual) -> Longitud variable 
-    # la longitud  varía entre individuos, pero no se va al infinito/colapso (ya quec esta acotado por
+    # la longitud  varía entre individuos, pero no se va al infinito/colapso (ya que esta acotado por
     # 'clip_genome_length' dentro de la configuracion de [min_genes, max_genes])
     if random.random() < conf.p_ins_gene:
         ins_pos = random.randint(0, len(out.genes))
@@ -1500,6 +1551,47 @@ def plot_feature_histograms(X: np.ndarray, y: np.ndarray, feature_names: List[st
         plt.close()
         print(f"[plot] guardado {out}")
 
+def _cohens_d(x0: np.ndarray, x1: np.ndarray) -> float:
+    m0, m1 = float(x0.mean()), float(x1.mean())
+    s0 = float(x0.std(ddof=1)) if len(x0) > 1 else 0.0
+    s1 = float(x1.std(ddof=1)) if len(x1) > 1 else 0.0
+    # pooled std
+    n0, n1 = len(x0), len(x1)
+    if n0 + n1 - 2 <= 0:
+        return 0.0
+    sp2 = (((n0-1)*(s0**2)) + ((n1-1)*(s1**2))) / (n0 + n1 - 2)
+    sp = math.sqrt(max(sp2, 1e-12))
+    return (m1 - m0) / sp if sp > 0 else 0.0
+
+def rank_features_by_effect_size(X: np.ndarray, y: np.ndarray, feature_names: List[str]) -> List[Tuple[int, float]]:
+    ranks = []
+    for i, name in enumerate(feature_names):
+        d = _cohens_d(X[y==0, i], X[y==1, i])
+        ranks.append((i, abs(d)))
+    return sorted(ranks, key=lambda t: t[1], reverse=True)
+
+def plot_feature_scatter(X: np.ndarray, y: np.ndarray, i: int, j: int, feature_names: List[str], out_prefix="scatter_"):
+    try:
+        import matplotlib.pyplot as plt
+    except Exception:
+        print("[WARN] matplotlib no disponible: se omiten scatters.")
+        return
+    import os
+    os.makedirs("plots", exist_ok=True)
+
+    x0_i, x0_j = X[y==0, i], X[y==0, j]
+    x1_i, x1_j = X[y==1, i], X[y==1, j]
+    plt.figure()
+    plt.scatter(x0_i, x0_j, alpha=0.4, s=8, label="y=0")
+    plt.scatter(x1_i, x1_j, alpha=0.4, s=8, label="y=1")
+    plt.xlabel(feature_names[i]); plt.ylabel(feature_names[j])
+    plt.title(f"{feature_names[i]} vs {feature_names[j]}")
+    plt.legend()
+    out = f"plots/{out_prefix}{i:02d}-{j:02d}_{feature_names[i]}_vs_{feature_names[j]}.png".replace(" ", "_")
+    plt.savefig(out, bbox_inches="tight"); plt.close()
+    print(f"[plot] guardado {out}")
+
+
 
 # ======================================
 #  CLI
@@ -1573,6 +1665,13 @@ def main():
     ap_rep.add_argument("--folds", type=int, default=5)
     ap_rep.add_argument("--seed", type=int, default=42)
     ap_rep.add_argument("--plots", action="store_true", help="Guardar histogramas por clase")
+    ap_rep.add_argument("--plot-mode", type=str, default="preset", choices=["preset","all","topk","list"], help="preset=5 fijos, all=todos, topk=Top-K por efecto, list=lista manual")
+    ap_rep.add_argument("--plot-k", type=int, default=8, help="K para plot-mode=topk")
+    ap_rep.add_argument("--plot-list", type=str, default="",help="Coma-separada, ej: 'scale_fit,rest_ratio,mean_interval_semitones'")
+    ap_rep.add_argument("--scatter", action="store_true",help="Además de histogramas, dibuja algunos scatters útiles")
+    ap_rep.add_argument("--no-cv", action="store_true", help="No correr GroupKFold CV")
+    ap_rep.add_argument("--no-loso", action="store_true", help="No correr Leave-One-Group-Out")
+    ap_rep.add_argument("--plots-only", action="store_true", help="Equivalente a --no-cv --no-loso")
 
     args = ap.parse_args()
 
@@ -1653,26 +1752,73 @@ def main():
 
     elif args.cmd == "report-from-dump":
         X, y, groups = load_dataset_dump(args.dump)
+        if args.plots_only:
+            args.no_cv = True
+            args.no_loso = True
         # Cross-val con 3 modelos
-        crossval_group_report(X, y, groups, n_splits=args.folds, random_state=args.seed, model_kind="mlp64x32")
-        crossval_group_report(X, y, groups, n_splits=args.folds, random_state=args.seed, model_kind="mlp16")
-        crossval_group_report(X, y, groups, n_splits=args.folds, random_state=args.seed, model_kind="logreg")
-        loso_report(X, y, groups, model_kind="mlp64x32", random_state=args.seed)
-        loso_report(X, y, groups, model_kind="mlp16",   random_state=args.seed)
-        loso_report(X, y, groups, model_kind="logreg",  random_state=args.seed)
+        if not args.no_cv:
+            crossval_group_report(X, y, groups, n_splits=args.folds, random_state=args.seed, model_kind="mlp64x32")
+            crossval_group_report(X, y, groups, n_splits=args.folds, random_state=args.seed, model_kind="mlp16")
+            crossval_group_report(X, y, groups, n_splits=args.folds, random_state=args.seed, model_kind="logreg")
+
+        if not args.no_loso:
+            loso_report(X, y, groups, model_kind="mlp64x32", random_state=args.seed)
+            loso_report(X, y, groups, model_kind="mlp16",   random_state=args.seed)
+            loso_report(X, y, groups, model_kind="logreg",  random_state=args.seed)
 
         # Stats y (opcional) plots de las features más “delatoras”
         feature_names = FEATURE_ORDER  # índice->nombre
         print_class_stats(X, y, feature_names)
 
-        if args.plots:
-            # índices de interés: scale_fit, mean_interval, rest_ratio, duration_entropy_norm, meter_alignment
-            idxs = [FEATURE_ORDER.index("scale_fit"),
+        indices = []
+        if args.plot_mode == "preset":
+            indices = [FEATURE_ORDER.index("scale_fit"),
                     FEATURE_ORDER.index("mean_interval_semitones"),
-                    FEATURE_ORDER.index("rest_ratio"),
                     FEATURE_ORDER.index("duration_entropy_norm"),
+                    FEATURE_ORDER.index("rest_ratio"),
                     FEATURE_ORDER.index("meter_alignment")]
-            plot_feature_histograms(X, y, feature_names, idxs)
+        elif args.plot_mode == "all":
+            indices = list(range(len(feature_names)))
+        elif args.plot_mode == "topk":
+            ranks = rank_features_by_effect_size(X, y, feature_names)
+            indices = [i for i,_ in ranks[:args.plot_k]]
+        elif args.plot_mode == "list":
+            if args.plot_list.strip():
+                wanted = [s.strip() for s in args.plot_list.split(",")]
+                indices = [FEATURE_ORDER.index(w) for w in wanted if w in FEATURE_ORDER]
+            else:
+                print("[WARN] --plot-list está vacío; usando preset.")
+                indices = [FEATURE_ORDER.index("scale_fit"),
+                        FEATURE_ORDER.index("mean_interval_semitones"),
+                        FEATURE_ORDER.index("duration_entropy_norm"),
+                        FEATURE_ORDER.index("rest_ratio"),
+                        FEATURE_ORDER.index("meter_alignment")]
+
+        if args.plots:
+            # # índices de interés: scale_fit, mean_interval, rest_ratio, duration_entropy_norm, meter_alignment
+            # idxs = [FEATURE_ORDER.index("scale_fit"),
+            #         FEATURE_ORDER.index("mean_interval_semitones"),
+            #         FEATURE_ORDER.index("rest_ratio"),
+            #         FEATURE_ORDER.index("duration_entropy_norm"),
+            #         FEATURE_ORDER.index("meter_alignment")]
+            plot_feature_histograms(X, y, feature_names, indices)
+            if args.scatter:
+                # Algunos pares típicos (si existen)
+                pairs = []
+                def safe_idx(name): 
+                    return FEATURE_ORDER.index(name) if name in FEATURE_ORDER else None
+                cand = [
+                    ("mean_interval_semitones", "step_ratio_leq5st"),
+                    ("meter_alignment", "rest_ratio"),
+                    ("range_semitones", "mean_interval_semitones"),
+                    ("rep_ngram3_durations", "duration_entropy_norm"),
+                ]
+                for a,b in cand:
+                    ia, ib = safe_idx(a), safe_idx(b)
+                    if ia is not None and ib is not None:
+                        pairs.append((ia, ib))
+                for (i,j) in pairs:
+                    plot_feature_scatter(X, y, i, j, feature_names)
 
     else:
         ap.print_help()
