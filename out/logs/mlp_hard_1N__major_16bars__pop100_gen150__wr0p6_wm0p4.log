@@ -1,0 +1,33 @@
+[GEN 0] best = 0.5199
+[GEN 5] best = 0.5241 | gen_best = 0.5241 | mean = 0.4603
+[GEN 10] best = 0.5241 | gen_best = 0.5241 | mean = 0.4677
+[GEN 15] best = 0.8316 | gen_best = 0.8316 | mean = 0.4834
+[GEN 20] best = 0.8737 | gen_best = 0.8737 | mean = 0.5078
+[GEN 25] best = 0.8794 | gen_best = 0.8794 | mean = 0.5448
+[GEN 30] best = 0.8806 | gen_best = 0.8806 | mean = 0.5887
+[GEN 35] best = 0.8806 | gen_best = 0.8806 | mean = 0.6460
+[GEN 40] best = 0.8806 | gen_best = 0.8806 | mean = 0.6434
+[GEN 45] best = 0.8806 | gen_best = 0.8806 | mean = 0.6147
+[GEN 50] best = 0.8806 | gen_best = 0.8806 | mean = 0.6673
+[GEN 55] best = 0.8819 | gen_best = 0.8819 | mean = 0.6532
+[GEN 60] best = 0.8819 | gen_best = 0.8819 | mean = 0.6488
+[GEN 65] best = 0.8841 | gen_best = 0.8841 | mean = 0.7236
+[GEN 70] best = 0.8841 | gen_best = 0.8841 | mean = 0.7217
+[GEN 75] best = 0.8894 | gen_best = 0.8894 | mean = 0.7059
+[GEN 80] best = 0.8896 | gen_best = 0.8896 | mean = 0.7150
+[GEN 85] best = 0.8929 | gen_best = 0.8929 | mean = 0.6881
+[GEN 90] best = 0.8929 | gen_best = 0.8929 | mean = 0.7461
+[GEN 95] best = 0.8929 | gen_best = 0.8929 | mean = 0.6784
+[GEN 100] best = 0.8929 | gen_best = 0.8929 | mean = 0.7140
+[GEN 105] best = 0.8929 | gen_best = 0.8929 | mean = 0.7079
+[GEN 110] best = 0.8929 | gen_best = 0.8929 | mean = 0.6756
+[GEN 115] best = 0.8929 | gen_best = 0.8929 | mean = 0.6682
+[GEN 120] best = 0.8929 | gen_best = 0.8929 | mean = 0.6951
+[GEN 125] best = 0.8929 | gen_best = 0.8929 | mean = 0.6885
+[GEN 130] best = 0.8929 | gen_best = 0.8929 | mean = 0.7565
+[GEN 135] best = 0.8929 | gen_best = 0.8929 | mean = 0.6733
+[GEN 140] best = 0.8929 | gen_best = 0.8929 | mean = 0.7131
+[GEN 145] best = 0.8929 | gen_best = 0.8929 | mean = 0.7120
+[GEN 150] best = 0.8929 | gen_best = 0.8929 | mean = 0.6705
+[EA] Best fitness = 0.8929
+[EA] Guardado: out\mlp_hard_1N__major_16bars__pop100_gen150__wr0p6_wm0p4.mid

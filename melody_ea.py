@@ -569,10 +569,10 @@ def rule_based_fitness(feat: Dict[str, Any]) -> float:
 
     score = (
         # 0.25*scale_fit
-      + 0.25*step_ratio
+      + 0.30*step_ratio
       + 0.20*align
-      + 0.15*(1 - abs(ent - 0.6))
-      + 0.15*(1 - min(mean_int/6.0, 1.0))
+      + 0.20*(1 - abs(ent - 0.6))
+      + 0.20*(1 - min(mean_int/6.0, 1.0))
       + 0.20*(1 - abs(rep_dur - 0.6))
       + 0.20*(1 - abs(rep_cont - 0.7))
       - 0.20*rest_r
@@ -1196,23 +1196,35 @@ def evaluate_genome(g: Genome, conf: EAConfig, clf=None) -> float:
     feats = compute_features(phen, make_key_for_mode(g.mode))
     frule = rule_based_fitness(feats)
 
+    # Sigmoide --> Devuelve entre [0,1]
+    mu, k = 0.6, 4.0
+    frule_norm = 1.0 / (1.0 + math.exp(-k*(frule - mu)))
+
     mlp_score = 0.0
     if clf is not None:
         try:
             x = features_to_vector(feats).reshape(1, -1)
             if hasattr(clf, "predict_proba"):
-                mlp_score = float(clf.predict_proba(x)[0, 1])
+                mlp_score = float(clf.predict_proba(x)[0, 1]) # Tambien entre [0,1]
             else:
                 mlp_score = float(clf.predict(x)[0])
         except Exception:
             mlp_score = 0.0
 
-    # score de longitud
+    # score de longitud entre [0,1]
     total_qL = sum(e.duration_qL for e in phen.events) # Suma de la música “real” tras cortes en compás y ties
     len_score = length_alignment_score(total_qL, bars=conf.bars, ts_str=g.time_signature, tol=conf.len_tol)
 
+    # Reescalo pesos para que sumen 1
+    MIN_WL = 0.05
+    w_r, w_m, w_l = conf.w_rules, conf.w_mlp, max(conf.w_len, MIN_WL)
+    s = w_r + w_m + w_l
+    w_r, w_m, w_l = w_r/s, w_m/s, w_l/s
+    score = w_r*frule_norm + w_m*mlp_score + w_l*len_score
+    score = max(0.0, min(1.0, score))
+
     # score combinado
-    score = conf.w_rules * frule + conf.w_mlp * mlp_score + conf.w_len * len_score
+    # score = conf.w_rules * frule + conf.w_mlp * mlp_score + conf.w_len * len_score
 
     # gating: re-fenotipar para permitir ties/articulations si supera umbral (no cambia score en esta pasada)
     if score >= conf.expressive_thr and not g.allow_expressive:

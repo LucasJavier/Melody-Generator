@@ -1,0 +1,35 @@
+[GEN 0] best = 0.9335
+[GEN 5] best = 0.9339 | gen_best = 0.9339 | mean = 0.5969
+[GEN 10] best = 0.9489 | gen_best = 0.9489 | mean = 0.7024
+[GEN 15] best = 0.9535 | gen_best = 0.9535 | mean = 0.7130
+[GEN 20] best = 0.9600 | gen_best = 0.9600 | mean = 0.7547
+[GEN 25] best = 0.9600 | gen_best = 0.9600 | mean = 0.7740
+[GEN 30] best = 0.9613 | gen_best = 0.9613 | mean = 0.7399
+[GEN 35] best = 0.9623 | gen_best = 0.9623 | mean = 0.7855
+[GEN 40] best = 0.9645 | gen_best = 0.9645 | mean = 0.8026
+[GEN 45] best = 0.9645 | gen_best = 0.9645 | mean = 0.7427
+[GEN 50] best = 0.9645 | gen_best = 0.9645 | mean = 0.7691
+[GEN 55] best = 0.9645 | gen_best = 0.9645 | mean = 0.7817
+[GEN 60] best = 0.9645 | gen_best = 0.9645 | mean = 0.7937
+[GEN 65] best = 0.9648 | gen_best = 0.9648 | mean = 0.8163
+[GEN 70] best = 0.9648 | gen_best = 0.9648 | mean = 0.8184
+[GEN 75] best = 0.9648 | gen_best = 0.9648 | mean = 0.8184
+[GEN 80] best = 0.9655 | gen_best = 0.9654 | mean = 0.8423
+[GEN 85] best = 0.9655 | gen_best = 0.9654 | mean = 0.8091
+[GEN 90] best = 0.9662 | gen_best = 0.9662 | mean = 0.8180
+[GEN 95] best = 0.9662 | gen_best = 0.9662 | mean = 0.7772
+[GEN 100] best = 0.9662 | gen_best = 0.9662 | mean = 0.8396
+[GEN 105] best = 0.9662 | gen_best = 0.9662 | mean = 0.7948
+[GEN 110] best = 0.9662 | gen_best = 0.9662 | mean = 0.8469
+[GEN 115] best = 0.9662 | gen_best = 0.9662 | mean = 0.8369
+[GEN 120] best = 0.9665 | gen_best = 0.9665 | mean = 0.8013
+[GEN 125] best = 0.9665 | gen_best = 0.9665 | mean = 0.7545
+[GEN 130] best = 0.9669 | gen_best = 0.9669 | mean = 0.8135
+[GEN 135] best = 0.9669 | gen_best = 0.9669 | mean = 0.8027
+[GEN 140] best = 0.9669 | gen_best = 0.9669 | mean = 0.7793
+[GEN 145] best = 0.9669 | gen_best = 0.9669 | mean = 0.8263
+[GEN 150] best = 0.9669 | gen_best = 0.9669 | mean = 0.8086
+[EA] Best fitness = 0.9669
+beam: WARNING: Found a messed up beam pair <music21.beam.Beams <music21.beam.Beam 1/start>/<music21.beam.Beam 2/partial/right>>, <music21.beam.Beams <music21.beam.Beam 1/stop>/<music21.beam.Beam 2/stop>>, at index 10 of 
+[<music21.beam.Beams <music21.beam.Beam 1/start>/<music21.beam.Beam 2/start>/<music21.beam.Beam 3/partial/right>/<music21.beam.Beam 4/partial/right>>, <music21.beam.Beams <music21.beam.Beam 1/continue>/<music21.beam.Beam 2/continue>>, <music21.beam.Beams <music21.beam.Beam 1/stop>/<music21.beam.Beam 2/stop>>, None, None, <music21.beam.Beams <music21.beam.Beam 1/start>>, <music21.beam.Beams <music21.beam.Beam 1/stop>>, <music21.beam.Beams <music21.beam.Beam 1/start>>, <music21.beam.Beams <music21.beam.Beam 1/continue>/<music21.beam.Beam 2/partial/right>>, <music21.beam.Beams <music21.beam.Beam 1/stop>>, <music21.beam.Beams <music21.beam.Beam 1/start>/<music21.beam.Beam 2/partial/right>>, <music21.beam.Beams <music21.beam.Beam 1/stop>/<music21.beam.Beam 2/stop>>]
+[EA] Guardado: out\mlp_easy_2N__major_16bars__pop100_gen150__wr0p2_wm0p8.mid

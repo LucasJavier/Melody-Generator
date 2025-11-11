@@ -1,0 +1,21 @@
+[GEN 0] best = 0.3840
+[GEN 5] best = 0.3858 | gen_best = 0.3858 | mean = 0.3235
+[GEN 10] best = 0.3906 | gen_best = 0.3906 | mean = 0.3449
+[GEN 15] best = 0.3906 | gen_best = 0.3906 | mean = 0.3437
+[GEN 20] best = 0.3923 | gen_best = 0.3923 | mean = 0.3558
+[GEN 25] best = 0.3980 | gen_best = 0.3980 | mean = 0.3607
+[GEN 30] best = 0.4000 | gen_best = 0.4000 | mean = 0.3527
+[GEN 35] best = 0.4000 | gen_best = 0.4000 | mean = 0.3650
+[GEN 40] best = 0.4000 | gen_best = 0.4000 | mean = 0.3498
+[GEN 45] best = 0.4000 | gen_best = 0.4000 | mean = 0.3619
+[GEN 50] best = 0.4005 | gen_best = 0.4005 | mean = 0.3497
+[GEN 55] best = 0.4005 | gen_best = 0.4005 | mean = 0.3618
+[GEN 60] best = 0.4007 | gen_best = 0.4007 | mean = 0.3730
+[GEN 65] best = 0.4007 | gen_best = 0.4007 | mean = 0.3694
+[GEN 70] best = 0.4010 | gen_best = 0.4010 | mean = 0.3667
+[GEN 75] best = 0.4010 | gen_best = 0.4010 | mean = 0.3533
+[GEN 80] best = 0.4011 | gen_best = 0.4011 | mean = 0.3588
+[GEN 85] best = 0.4011 | gen_best = 0.4011 | mean = 0.3514
+[GEN 90] best = 0.4011 | gen_best = 0.4011 | mean = 0.3655
+[EA] Best fitness = 0.4011
+[EA] Guardado: out\mlp_hard_1N__major_8bars__pop60_gen90__wr0p4_wm0p6.mid

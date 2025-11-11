@@ -1,0 +1,21 @@
+[GEN 0] best = 0.7577
+[GEN 5] best = 0.7796 | gen_best = 0.7796 | mean = 0.6136
+[GEN 10] best = 0.8408 | gen_best = 0.8408 | mean = 0.6384
+[GEN 15] best = 0.8408 | gen_best = 0.8408 | mean = 0.6753
+[GEN 20] best = 0.8408 | gen_best = 0.8408 | mean = 0.6697
+[GEN 25] best = 0.8501 | gen_best = 0.8501 | mean = 0.6691
+[GEN 30] best = 0.8622 | gen_best = 0.8622 | mean = 0.6829
+[GEN 35] best = 0.8628 | gen_best = 0.8622 | mean = 0.6781
+[GEN 40] best = 0.8628 | gen_best = 0.8622 | mean = 0.7003
+[GEN 45] best = 0.8628 | gen_best = 0.8622 | mean = 0.6808
+[GEN 50] best = 0.8640 | gen_best = 0.8640 | mean = 0.6923
+[GEN 55] best = 0.8671 | gen_best = 0.8667 | mean = 0.7425
+[GEN 60] best = 0.8720 | gen_best = 0.8720 | mean = 0.6981
+[GEN 65] best = 0.8720 | gen_best = 0.8720 | mean = 0.7213
+[GEN 70] best = 0.8737 | gen_best = 0.8736 | mean = 0.7149
+[GEN 75] best = 0.8737 | gen_best = 0.8736 | mean = 0.7546
+[GEN 80] best = 0.8765 | gen_best = 0.8765 | mean = 0.7570
+[GEN 85] best = 0.8765 | gen_best = 0.8765 | mean = 0.7315
+[GEN 90] best = 0.8771 | gen_best = 0.8771 | mean = 0.7417
+[EA] Best fitness = 0.8771
+[EA] Guardado: out\mlp_easy_2N__minor_8bars__pop60_gen90__wr0p8_wm0p2.mid
