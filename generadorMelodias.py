@@ -1,34 +1,32 @@
 """
-Batch runner for melody_ea.py -> evolve (with best-score logging)
+Ejecutamos por lotes para melody_ea.py -> evolve (con registro de la mejor puntuación)
 
-Generates multiple melodies across models, modes, bar lengths, population sizes,
-generation counts, and (w_rules, w_mlp) weight pairs, saving all MIDIs into ./out
-AND appending the best fitness found to a CSV log.
+Genera múltiples melodías en diferentes modelos, modos, longitudes de compás, tamaños de población,
+recuentos de generación y pares de pesos (w_rules, w_mlp), guardando todos los MIDI en ./out
+Y añadiendo la mejor aptitud encontrada a un registro CSV.
 
-Usage (from the same folder where melody_ea.py and the models live):
-    python run_batch_evolve.py
-
-Notes:
-- Assumes by default:
-  * 6 model files in ./models :
+Notas:
+- Asume por defecto:
+  * 6 archivos de modelo en ./models :
       mlp_easy_1N.pkl, mlp_easy_2N.pkl, mlp_easy_3N.pkl,
       mlp_hard_1N.pkl, mlp_hard_2N.pkl, mlp_hard_3N.pkl
-  * Output folder is ./out (created if missing)
-  * For 8 bars: pop=60, gens=90  
-    For 16 bars: pop=100, gens=150
-  * Runs 6 weight mixes per configuration: (1.0,0.0), (0.8,0.2), ..., (0.0,1.0)
-  * Logs best fitness per run to CSV at ./out/evolve_scores.csv
-  * Optionally writes full stdout per run to ./out/logs/<same_name>.log
+  * La carpeta de salida es ./out (creada si no existe)
+  * Para 8 barras: pop=60, gens=90  
+    Para 16 barras: pop=100, gens=150
+  * Ejecuta 6 combinaciones de pesos por configuración: (1,0,0,0), (0,8,0,2), ..., (0,0,1,0)
+  * Registra la mejor aptitud por ejecución en CSV en ./out/evolve_scores.csv
+  * Opcionalmente, escribe la salida estándar completa por ejecución en ./out/logs/<mismo_nombre>.log
 
-- Total runs: 6 models × 4 mode/bar configs × 6 weight pairs = 144 MIDIs
+- Ejecuciones totales: 6 modelos × 4 configuraciones de modo/barra × 6 pares de pesos = 144 MIDI
 
-Switches:
-- VERBOSE: append --verbose to each evolve call.
-- OVERWRITE: when False, skip runs whose MIDI already exists.
-- DRY_RUN: print commands only, do not execute.
-- SAVE_STDOUT_LOGS: when True, save per-run logs to ./out/logs/.
-- GEN_8 can be set to 100 if you prefer 100 generations for 8 bars.
+Interruptores:
+- VERBOSE: añade --verbose a cada llamada evolve.
+- OVERWRITE: cuando es False, omite las ejecuciones cuyo MIDI ya existe.
+- DRY_RUN: solo imprime comandos, no los ejecuta.
+- SAVE_STDOUT_LOGS: cuando es True, guarda los registros por ejecución en ./out/logs/.
+- GEN_8 se puede establecer en 100 si prefieres 100 generaciones para 8 compases.
 """
+
 from __future__ import annotations
 import sys
 import csv
@@ -38,11 +36,11 @@ from datetime import datetime
 from itertools import product
 from typing import List, Tuple, Optional
 
-# ----------------------- User-tunable knobs -----------------------
-MELODY_EA_PATH = Path("melody_ea.py")   # path to melody_ea.py
-MODELS_DIR     = Path("models")         # folder containing the .pkl files
-OUT_DIR        = Path("out")            # output folder for .mid
-LOG_DIR        = OUT_DIR / "logs"        # per-run stdout logs (optional)
+# ----------------------- Knobs ajustables -----------------------
+MELODY_EA_PATH = Path("melody_ea.py")   # ruta melody_ea.py
+MODELS_DIR     = Path("models")         # carpeta que contiene los archivos .pkl 
+OUT_DIR        = Path("out")            # carpeta de salida para los .mid
+LOG_DIR        = OUT_DIR / "logs"        # registros stdout por ejecucion (optional)
 SCORE_CSV_PATH = OUT_DIR / "evolve_scores.csv"
 
 MODEL_FILES = [
@@ -54,7 +52,7 @@ MODEL_FILES = [
     "mlp_hard_3N.pkl",
 ]
 
-# Weight pairs (w_rules, w_mlp)
+# Pares de pesos (w_rules, w_mlp)
 WEIGHT_SETS: List[Tuple[float, float]] = [
     (1.0, 0.0),
     (0.8, 0.2),
@@ -64,7 +62,7 @@ WEIGHT_SETS: List[Tuple[float, float]] = [
     (0.0, 1.0),
 ]
 
-# Configs by (mode, bars) -> (pop_size, generations)
+# Configuraciones (mode, bars) -> (pop_size, generations)
 GEN_8  = 90
 GEN_16 = 150
 CONFIGS = {
@@ -74,23 +72,22 @@ CONFIGS = {
     ("major", 16): (100, GEN_16),
 }
 
-# Execution flags
-SEED      = 42        # or None to use default from melody_ea
-VERBOSE   = True      # add --verbose to each run
-OVERWRITE = False     # skip existing output files if False
-DRY_RUN   = False     # only print commands without executing
-SAVE_STDOUT_LOGS = True  # write ./out/logs/<midi_name>.log with the full stdout
-
+# Flags
+SEED      = 42        # Seed para usar o None
+VERBOSE   = True      # Para agregar logs
+OVERWRITE = False     # Omitir archivos si existen
+DRY_RUN   = False     # Imprimir comando ejecutando o no
+SAVE_STDOUT_LOGS = True  # Escribe ./out/logs/<midi_name>.log con la salida completa
 # -----------------------------------------------------------------
 
 def sanitize_float(f: float) -> str:
-    """Make a filename-safe short string for floats, e.g., 0.8 -> '0p8'."""
+    """Crea una cadena corta para nombres de archivo, para números flotantes, por ejemplo, 0,8 -> '0p8'"""
     s = f"{f:.1f}"
     return s.replace("-", "m").replace(".", "p")
 
 
 def build_out_name(model: Path, mode: str, bars: int, pop: int, gens: int, wr: float, wm: float) -> Path:
-    stem = model.stem  # e.g., mlp_easy_1N
+    stem = model.stem  # ej, mlp_easy_1N
     wr_s = sanitize_float(wr)
     wm_s = sanitize_float(wm)
     fname = f"{stem}__{mode}_{bars}bars__pop{pop}_gen{gens}__wr{wr_s}_wm{wm_s}.mid"
@@ -118,10 +115,10 @@ def build_cmd(model_path: Path, out_path: Path, mode: str, bars: int, pop: int, 
 
 def extract_best_fitness_from_text(text: str) -> Optional[float]:
     """
-    Parse the evolve() output.
-    Primary: look for a line like: "[EA] Best fitness = 1.0326"
-    Fallback: use the last occurrence of lines like: "[GEN 30] best = 1.0326 | gen_best = ..."
-    Return None if nothing matches.
+    Analiza la salida de evolve().
+    Primario: buscar una línea como: «[EA] Best fitness = 0.9871»
+    Alternativa: utilizar la última aparición de líneas como: «[GEN 30] best = 0.8971 | gen_best = ...»
+    Devuelve None si no hay coincidencias.
     """
     best_val: Optional[float] = None
 
@@ -137,13 +134,13 @@ def extract_best_fitness_from_text(text: str) -> Optional[float]:
     if best_val is not None:
         return best_val
 
-    # Fallback: seek last [GEN ...] best = X
+    # Fallback: ultimo [GEN ...] best = X
     last_best: Optional[float] = None
     for line in text.splitlines():
         line = line.strip()
         if line.startswith("[GEN ") and " best = " in line:
             try:
-                # e.g. "[GEN 30] best = 1.0326 | gen_best = 1.0326 | mean = 0.9034"
+                # ej: "[GEN 30] best = 1.0326 | gen_best = 1.0326 | mean = 0.9034"
                 after = line.split(" best = ", 1)[1]
                 num = after.split()[0]
                 last_best = float(num)
@@ -165,7 +162,7 @@ def append_score_csv(csv_path: Path,
                      out_midi: Path,
                      best_fitness: Optional[float],
                      exit_code: int) -> None:
-    """Append a row to the CSV, creating header if missing."""
+    """Añade una fila al CSV, creando el encabezado si falta."""
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     exists = csv_path.exists()
     with csv_path.open("a", newline="", encoding="utf-8") as f:
@@ -196,7 +193,6 @@ def run_evolve(model_path: Path, mode: str, bars: int, pop: int, gens: int, wr: 
 
     if not OVERWRITE and out_path.exists():
         print(f"[skip] exists: {out_path}")
-        # Still log a row marking skipped? Not necessary; skip silently here.
         return
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -211,30 +207,28 @@ def run_evolve(model_path: Path, mode: str, bars: int, pop: int, gens: int, wr: 
 
     when = datetime.now()
 
-    # Capture stdout/stderr while also echoing to our console
+    # Captura stdout/stderr mientras se repite en la consola.
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     captured_lines: List[str] = []
     assert proc.stdout is not None
     for line in proc.stdout:
         captured_lines.append(line)
-        print(line, end="")  # echo live
+        print(line, end="") 
     proc.wait()
 
     full_text = "".join(captured_lines)
     best = extract_best_fitness_from_text(full_text)
 
-    # Save per-run stdout log (optional)
+    # Guarda los logs per-run (optional)
     if SAVE_STDOUT_LOGS:
         log_name = out_path.with_suffix(".log").name
         with (LOG_DIR / log_name).open("w", encoding="utf-8") as flog:
             flog.write(full_text)
 
-    # Append to CSV
     append_score_csv(
         SCORE_CSV_PATH, when, model_path, mode, bars, pop, gens, wr, wm, SEED, out_path, best, proc.returncode
     )
 
-    # If the subprocess failed, raise after logging so the batch continues gracefully outside
     if proc.returncode != 0:
         raise subprocess.CalledProcessError(proc.returncode, cmd)
 
@@ -244,7 +238,7 @@ def main():
         print(f"[error] melody_ea.py not found at: {MELODY_EA_PATH}")
         sys.exit(1)
 
-    # Resolve model paths
+    # Rutas del modelo
     model_paths = []
     for mf in MODEL_FILES:
         mp = (MODELS_DIR / mf).resolve()
@@ -252,7 +246,7 @@ def main():
             print(f"[warn] model not found: {mp}")
         model_paths.append(mp)
 
-    # Cartesian product over: models × [(mode,bars)] × weights
+    # Producto cartesiano sobre: modelos × [(modo, barras)] × pesos
     for model_path in model_paths:
         if not model_path.exists():
             print(f"[skip-model] missing: {model_path}")

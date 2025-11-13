@@ -3,13 +3,12 @@ melody_ea.py
 ------------
 Base para proyecto de generación de melodías con Algoritmo Evolutivo + evaluación por reglas y MLP.
 
-Requisitos (instalar con pip):
-    pip install music21 numpy scikit-learn joblib
+Requisitos: pip install music21 numpy scikit-learn joblib
 
 Qué contiene:
 A) Representación del individuo (genotipo por grados diatónicos + octava, en Do mayor/menor) y fenotipado a eventos/MIDI.
-B) Extracción de *features* musicales (las mismas que venimos usando) y pipeline para entrenar una MLP con dataset de MIDIs.
-   Incluye funciones para crear versiones "con ruido" (negativas) a partir de melodías buenas.
+B) Extracción de *features* musicales y pipeline para entrenar una MLP con dataset de MIDIs. Incluye funciones para crear 
+versiones "con ruido" (negativas) a partir de melodías buenas.
 
 Uso CLI (ejemplos):
 -------------------
@@ -39,7 +38,7 @@ Uso CLI (ejemplos):
 
 """
 
-# imports
+# Imports
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import List, Optional, Dict, Any, Tuple
@@ -51,10 +50,10 @@ import random
 import pathlib
 import numpy as np
 
-# music21
+# Music21
 from music21 import converter, stream, note, chord, meter, key as m21key, tempo, interval, tie, articulations as arts
 
-# opcionales (para entrenar)
+# Para entrenar y reportes
 try:
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import StandardScaler
@@ -72,14 +71,14 @@ except Exception:
 # ============================
 
 # Tablas discretas de duración (en quarterLength) y velocidad
-DUR_TABLE = [0.25, 0.5, 1.0, 2.0]      # semi-corchea, corchea, negra, blanca
+DUR_TABLE = [0.25, 0.5, 1.0, 2.0]  # semi-corchea, corchea, negra, blanca
 VEL_TABLE = [40, 64, 85, 105]    # p, mp, mf, f
 
-# Pitch-classes diatónicos para Do mayor / menor natural
+# Pitch-classes diatónicos para Do mayor / menor
 PC_MAJOR = [0, 2, 4, 5, 7, 9, 11]  # C D E F G A B
-PC_MINOR = [0, 2, 3, 5, 7, 8, 10]  # C D Eb F G Ab Bb (natural)
+PC_MINOR = [0, 2, 3, 5, 7, 8, 10]  # C D Eb F G Ab Bb
 
-# Para normalizado llevarlo a como pide 'articulation' de music21
+# Para normalizado llevarlo a como pide 'articulation' de music21 (no usado ahora)
 NAME2CLASS = {
     'staccato': 'Staccato',
     'tenuto': 'Tenuto',
@@ -114,7 +113,7 @@ class Genome:
     tessitura_high: int = 72     # C5
     allow_expressive: bool = False  # si True, respeta tie/articulations que traiga el gen
 
-# ---------------- Fenotipado: genotipo -> notas/REST con compases, beat y ties correctos ---------------
+# ---------------- Fenotipado: genotipo -> notas/REST con compases, beat y ties ---------------
 
 @dataclass
 class Event:
@@ -171,13 +170,14 @@ def phenotype_from_genome(g: Genome) -> Individual:
 
         vel = VEL_TABLE[gene.velIdx] if (gene.velIdx is not None and 0 <= gene.velIdx < len(VEL_TABLE)) else 64
 
-        first_chunk = True
-        while remaining > 1e-9: # Umbral que queda en el compas
+        first_chunk = True # Primer evento del compas
+        while remaining > 1e-9: # Umbral que queda en el compas (si la nota no entra, se siguen en el siguiente compas, y tendra,
+            # por lo tanto, mas de 1 evento la misma)
             space = bar_len - cur_in_bar
             use = min(remaining, space)
             beat_pos = 1.0 + cur_in_bar
 
-            # tie automático si el evento se corta en compás siguiente
+            # Si no alcanza, la nota se marca o se continua en el siguiente compas
             tie_flag = None
             if not gene.isRest and use < remaining:
                 tie_flag = 'start' if first_chunk else 'continue'
@@ -186,9 +186,9 @@ def phenotype_from_genome(g: Genome) -> Individual:
 
             # si allow_expressive, respeta flags del gen (prioridad al tie automático para cortes)
             final_tie = tie_flag if tie_flag is not None else (gene.tieFlag if g.allow_expressive else None)
-            arts = [gene.articulation] if (g.allow_expressive and gene.articulation) else []
+            arts = [gene.articulation] if (g.allow_expressive and gene.articulation) else [] # No usado ahora
             # normaliza:
-            arts = [a.lower() for a in arts]
+            arts = [a.lower() for a in arts] # No usado ahora
 
             events.append(Event(
                 pitch=None if gene.isRest else midi,
@@ -229,7 +229,7 @@ def individual_to_stream(ind: Individual) -> stream.Part:
 
     offset = 0.0
 
-    for e in ind.events:
+    for e in ind.events: # No usado ahora
         play_qL = e.duration_qL
         is_stacc = ('staccato' in (e.articulations or []))
         if is_stacc:
@@ -247,7 +247,7 @@ def individual_to_stream(ind: Individual) -> stream.Part:
             except Exception:
                 pass
 
-        # articulaciones simples
+        # articulaciones simples (No usado ahora)
         for a in e.articulations or []:
             try:
                 cls_name = NAME2CLASS.get(a.lower())
@@ -259,7 +259,7 @@ def individual_to_stream(ind: Individual) -> stream.Part:
         p.insert(offset, el)
         offset += play_qL
 
-        # Relleno para no romper la métrica (sólo si no es silencio y quedó hueco)
+        # Relleno para no romper la métrica (sólo si no es silencio y quedó hueco) - No usado ahora -
         gap = e.duration_qL - play_qL
         if gap > 1e-9 and not e.is_rest and e.pitch is not None:
             r = note.Rest()
@@ -318,7 +318,7 @@ def _scale_fit(events: List[Event], key_obj: m21key.Key) -> float:
     notes = [e for e in events if not e.is_rest and e.pitch is not None]
     if not notes:
         return 0.0
-    in_scale = sum(((e.pitch % 12) in pcs) for e in notes)
+    in_scale = sum(((e.pitch % 12) in pcs) for e in notes) # De absoluta a [0,11]
     return in_scale / len(notes)
 
 # Intervalo entre las notas (para ver que no haya saltos grandes) usando diferencia entre el tono anterior y el siguiente
@@ -333,11 +333,11 @@ def _step_leap_ratio(intervals: List[int], thr: int = 5) -> float:
     steps = sum(1 for d in intervals if d <= thr)
     return steps / len(intervals)
 
-# Evalua el ritmo, si es muy soso o muy caotico
+# Evalua el ritmo, si es muy soso o muy caotico (entropia de Shannon --> cuanto incertidumbre o variedad hay)
 def _entropy_from_hist(h: Dict[Any, float]) -> float:
     if not h:
         return 0.0
-    return -sum(p * math.log(p + 1e-12) for p in h.values())
+    return -sum(p * math.log(p + 1e-12) for p in h.values()) # Pondera la informacion por su frecuencia
 
 # Arma un histograma normalizado con la duracion de las notas
 def _duration_bins(events: List[Event]) -> Dict[float, float]:
@@ -408,18 +408,18 @@ def _expressive_features(ev: List[Event]) -> dict:
         # "articulation_entropy": H
     }
 
+# Para calcular cuanto se paso de la cantidad de compases que queremos en el final
 def length_alignment_score(total_qL: float, bars: int, ts_str: str = "4/4", tol: float = 0.05) -> float:
     bar_len = float(meter.TimeSignature(ts_str).barDuration.quarterLength)
     target = bars * bar_len
     if target <= 0:
         return 1.0
     rel_err = abs(total_qL - target) / target
-    # caída suave (gaussiana), rel_err = tol  => ~0.37 si tol es estricto,
+    # caída suave (gaussiana),
     # para caida mas suave: max(0, 1 - (rel_err/tol)**2)
     return float(math.exp(- (rel_err / max(tol, 1e-9))**2))
 
-# ----------------------------------------------------------------------------------------------
-
+# Calcula cuantas repiticiones hubo en proporcion, el maximo de repeticiones, y el maximo de repeticiones en nota final
 def _runs_same_pitch(ev: List[Event]) -> Tuple[int,int,float]:
     last = None; run = 0; max_run = 0
     notes = [e.pitch for e in ev if e.pitch is not None]
@@ -442,7 +442,6 @@ def _runs_same_pitch(ev: List[Event]) -> Tuple[int,int,float]:
     return int(max_run), int(tail_run), float(same_ratio)
 
 # ----------------------------------------------------------------------------------------------
-
 
 # Obtenemos todas las metricas
 def compute_features(ind: Individual, key_obj: m21key.Key) -> Dict[str, Any]:
@@ -471,13 +470,9 @@ def compute_features(ind: Individual, key_obj: m21key.Key) -> Dict[str, Any]:
     dur_seq = [e.duration_qL for e in ev if not e.is_rest]
     rep_dur3 = _ngram_repetition_score(dur_seq, n=3)
 
-    # ------------------------------------------------------------------------------
-
     max_run, tail_run, same_ratio = _runs_same_pitch(ev)
 
-    # ------------------------------------------------------------------------------
-
-    # reconstruir Part para metodo aligment (que tan cuadrada o no la melodia)
+    # reconstruimos Part para metodo aligment (que tan cuadrada o no la melodia)
     # y expresividad (metodo expressive)
     p = stream.Part()
     ts_str = ind.metadata.get('timeSignature') or '4/4'
@@ -520,6 +515,7 @@ def compute_features(ind: Individual, key_obj: m21key.Key) -> Dict[str, Any]:
     })
     return base
 
+# Metricas del MLP
 FEATURE_ORDER = [
     "scale_fit",
     "mean_interval_semitones",
@@ -543,12 +539,12 @@ FEATURE_ORDER = [
 
 def features_to_vector(feat: Dict[str, Any]) -> np.ndarray:
     """Convierte el dict de features en un vector numérico fijo.
-       Histogramas se omiten en el vector base (se pueden añadir si se quiere)."""
+       Histogramas se omiten en el vector base (se pueden añadir si queremos)."""
     return np.array([float(feat[k]) for k in FEATURE_ORDER], dtype=np.float32)
 
 # Devuelve el valor de fitness pesado
 def rule_based_fitness(feat: Dict[str, Any]) -> float:
-    """Escalar sencillo combinando objetivos razonables (ajustá a gusto)."""
+    """Calcula el escalar  combinando objetivos que queremos (ajustados a gusto)."""
     # scale_fit = feat["scale_fit"]
     step_ratio = feat["step_ratio_leq5st"]
     align = feat["meter_alignment"]
@@ -569,13 +565,13 @@ def rule_based_fitness(feat: Dict[str, Any]) -> float:
 
     score = (
         # 0.25*scale_fit
-      + 0.30*step_ratio
-      + 0.20*align
-      + 0.20*(1 - abs(ent - 0.6))
-      + 0.20*(1 - min(mean_int/6.0, 1.0))
-      + 0.20*(1 - abs(rep_dur - 0.6))
-      + 0.20*(1 - abs(rep_cont - 0.7))
-      - 0.20*rest_r
+      + 0.30*step_ratio # Beneficiamos intervalos no tan grandes
+      + 0.20*align # Beneficiamos variedad de notas en tiempos no - todos - fuertes
+      + 0.20*(1 - abs(ent - 0.6)) # Beneficia entropia de alrededor de 0.6
+      + 0.20*(1 - min(mean_int/6.0, 1.0)) # Beneficia que el promedio de intervalor no sea mayor a 6 semi-tonos
+      + 0.20*(1 - abs(rep_dur - 0.6)) # Beneficia intermedio de repticiones
+      + 0.20*(1 - abs(rep_cont - 0.7)) # Beneficiamos contorno
+      - 0.20*rest_r # Panalizamos silencios
       - 0.03*max(0.0, (range_s - 12) / 12.0)  # penaliza exceder 1 octava
     )
     score += 0.05 * min(tie_r, 0.2)             # un poco de ligaduras
@@ -594,7 +590,7 @@ def rule_based_fitness(feat: Dict[str, Any]) -> float:
 # ======================================
 
 # Redondea un valor temporal a una grilla rítmica fija, ya que los MIDI reales suelen traer 
-# “micro-desfasajes” (p.ej. 0.249 en vez de 0.25)
+# "micro-desfasajes" (p.ej. 0.249 en vez de 0.25)
 def _quantize(value: float, grid: float) -> float:
     if grid is None or grid <= 0:
         return value
@@ -602,7 +598,7 @@ def _quantize(value: float, grid: float) -> float:
 
 # Tranformamos para tener una sola linea melodica, en caso que haya superposicion de notas
 def _to_monophonic(part: stream.Part) -> stream.Part:
-    flat = part.flatten().notesAndRests.stream() # Aplanzamos para tener todas las notas
+    flat = part.flatten().notesAndRests.stream() # Aplanamos para tener todas las notas
     mono = stream.Part()
 
     for el in flat:
@@ -732,9 +728,10 @@ def corrupt_events_offscale(ev: List[Event], mode: str, prob: float = 0.15) -> L
             continue
         # empujar a un pc "malo" (no diatónico)
         pc = e.pitch % 12
-        candidates = [x for x in range(12) if x not in pcs]
-        bad_pc = random.choice(candidates)
-        new_pitch = e.pitch - pc + bad_pc
+        candidates = [x for x in range(12) if x not in pcs] # Si DoM [0,2,4,5,7,9,10,11], candidates = [1,3,6,8]
+        bad_pc = random.choice(candidates) 
+        # Posicion dentro de la misma octava
+        new_pitch = e.pitch - pc + bad_pc # C4 = 60 - 0 + 3 = 63 = Re#4 | R4 = 62 - 2 + 1 = 61 = C#4
         out.append(Event(new_pitch, e.duration_qL, e.velocity, e.beat, e.measure, False, e.articulations, e.tie))
     return out
 
@@ -796,7 +793,7 @@ def corrupt_events_on_scale_subtle(ev, mode: str, p=0.15):
         if e.is_rest or e.pitch is None or random.random() > p:
             out.append(e); continue
         pc = e.pitch % 12
-        # moverte al vecino diatónico ±1 o ±2 grados (mantener pc diatónico)
+        # moverte al vecino diatónico ±1 o ±2 grados (manteniendo el pc diatónico)
         steps = random.choice([1, 2])
         dirr = random.choice([-1, 1])
         # buscar nuevo pc diatónico cercano
@@ -854,6 +851,7 @@ def individual_from_events_like(ind: Individual, new_events: List[Event]) -> Ind
     meta = dict(ind.metadata)
     return Individual(metadata=meta, events=new_events)
 
+# Version facil
 def generate_negative_variants(ind: Individual, key_obj: m21key.Key, n: int = 2) -> List[Individual]:
     """Crea n variantes con 'ruido' (malas) a partir de una melodía buena."""
     negs: List[Individual] = []
@@ -870,6 +868,7 @@ def generate_negative_variants(ind: Individual, key_obj: m21key.Key, n: int = 2)
 
 # MAS FUERTE EL RUIDO
 
+# Version dificil
 def generate_negative_variants_hard(ind: Individual, key_obj: m21key.Key, n: int = 2) -> List[Individual]:
     negs = []
     for _ in range(n):
@@ -928,7 +927,6 @@ def load_dataset_from_dir(good_dir: str | pathlib.Path, negatives_per_good: int 
         raise RuntimeError("No se encontraron MIDIs válidos en la carpeta.")
     return np.vstack(X), np.array(y, dtype=np.int32), groups
 
-
 # ======================================
 #  E) ENTRENAMIENTO DEL MLP (features)
 # ======================================
@@ -952,6 +950,9 @@ def train_mlp_on_folder(good_dir: str | pathlib.Path, out_model: str | pathlib.P
     print(f"[INFO] Negativos: {kind}", flush=True)
 
     # Shuffle
+    # 'GroupShuffleSplit' nos hace la particion de 'train' y 'test' respetando los grupos (las melodias malas que se generaron
+    # a partir de la misma melodia buena), de manera que no quede una en un conjunto y la otra en otro (y por lo tanto, la evaluacion
+    # de el modelo no sea representativa)
     gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
     (tr_idx, te_idx) = next(gss.split(X, y, groups=groups))
     Xtr, Xte = X[tr_idx], X[te_idx]
@@ -987,7 +988,6 @@ def score_with_model(feats: Dict[str, Any], model_path: str | pathlib.Path) -> f
     # fallback
     pred = clf.predict(x)[0]
     return float(pred)
-
 
 # ======================================
 #  F) UTILIDADES EA: aleator y gating expresivo
@@ -1029,8 +1029,7 @@ def random_genome(n_compases: int = 8, mode: str = 'major', qpm: int = 96) -> Ge
 
 # Para habilidad la expresividad al individuo
 def enable_expressive_if_threshold(genome: Genome, fitness_value: float, thr: float = 0.65) -> Genome:
-    """'Gate' expresivo: si la aptitud supera umbral, habilitá tie/artic en el fenotipado.
-       (En EA real, también empezarías a mutar esos campos)."""
+    """'Gate' expresivo: si la aptitud supera umbral, habilitá tie/artic en el fenotipado."""
     genome.allow_expressive = (fitness_value >= thr)
     return genome
 
@@ -1085,7 +1084,7 @@ def genome_total_qL(g: Genome) -> float:
 
 # Si la duracion supera, cortamos, y si le falta, agregamos randon genes
 def clip_genome_length(g: Genome, conf: EAConfig) -> None:
-    # Clipa por cantidad de genes (seguridad)
+    # Clipea por cantidad de genes (seguridad)
     if len(g.genes) > conf.max_genes:
         g.genes = g.genes[:conf.max_genes]
     if len(g.genes) < conf.min_genes:
@@ -1103,7 +1102,7 @@ def random_population(conf: EAConfig) -> List[Genome]:
 
 # Mutamos a nivel gen
 def mutate_gene(gene: Gene, conf: EAConfig, mode: str, allow_expressive: bool) -> Gene:
-    # copia “ligera” (Gene es inmutable-ish por dataclass simple)
+    # copia 
     d = Gene(**gene.__dict__)
     if random.random() < conf.p_mut_degree:
         d.degree = (d.degree + random.choice([-2,-1,1,2])) % 7
@@ -1264,7 +1263,7 @@ def evolve(conf: EAConfig, verbose: bool = True) -> Tuple[Genome, float]:
         # elitismo
         elite_idx = np.argsort(fits)[-conf.elitism:][::-1]
         for i in elite_idx:
-            # copiar “duro” para no arrastrar referencias
+            # copiar para no arrastrar referencias
             g = Genome(**{**pop[i].__dict__})
             g.genes = [Gene(**gg.__dict__) for gg in pop[i].genes]
             new_pop.append(g)
@@ -1343,7 +1342,7 @@ def dump_dataset(
 
     suffix = out_path.suffix.lower()
     if suffix == ".npz":
-        # formato binario comprimido (rápido y compacto)
+        # formato binario comprimido 
         np.savez_compressed(out_path, X=X.astype(np.float32), y=y.astype(np.int32), groups=np.array(groups, dtype=object))
         print(f"[OK] Dump guardado en: {out_path} (npz) | X={X.shape}, y={y.shape}")
     else:
@@ -1400,11 +1399,15 @@ def train_mlp_from_dump(
     preservando grupos (archivo original) entre train/test.
     """
     if not SKLEARN_AVAILABLE:
-        raise RuntimeError("scikit-learn/joblib no están disponibles. Instalá: pip install scikit-learn joblib")
+        raise RuntimeError("scikit-learn/joblib no están disponibles. Instalar: pip install scikit-learn joblib")
 
     X, y, groups = load_dataset_dump(dump_path)
     print(f"[INFO] Cargado dump {dump_path} | X={X.shape}, y={y.shape} (positivos={int(y.sum())}, negativos={int((y==0).sum())})")
 
+    # Shuffle
+    # 'GroupShuffleSplit' nos hace la particion de 'train' y 'test' respetando los grupos (las melodias malas que se generaron
+    # a partir de la misma melodia buena), de manera que no quede una en un conjunto y la otra en otro (y por lo tanto, la evaluacion
+    # de el modelo no sea representativa)
     gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
     tr_idx, te_idx = next(gss.split(X, y, groups=groups))
     Xtr, Xte = X[tr_idx], X[te_idx]
@@ -1446,7 +1449,7 @@ def crossval_group_report(X: np.ndarray, y: np.ndarray, groups: List[str],
     model_kind: 'mlp64x32' | 'mlp16' | 'logreg'
     """
     if not SKLEARN_AVAILABLE:
-        raise RuntimeError("scikit-learn/joblib no están disponibles. Instalá: pip install scikit-learn joblib")
+        raise RuntimeError("scikit-learn/joblib no están disponibles. Instalar: pip install scikit-learn joblib")
 
     gkf = GroupKFold(n_splits=n_splits)
     all_y_true, all_y_pred = [], []
@@ -1484,6 +1487,7 @@ def loso_report(X, y, groups, model_kind="mlp64x32", random_state=42):
     if not SKLEARN_AVAILABLE:
         raise RuntimeError("scikit-learn/joblib no disponibles.")
 
+    # Validacion extrema dejando solo un grupo afuera y entrenando con los demas
     logo = LeaveOneGroupOut()
     all_y_true, all_y_pred = [], []
 
@@ -1537,7 +1541,6 @@ def plot_feature_histograms(X: np.ndarray, y: np.ndarray, feature_names: List[st
                             out_prefix: str = "feature_hist_"):
     """
     Guarda histogramas por clase (0/1) para algunas features.
-    Requiere matplotlib; si no está, solo avisa y retorna.
     """
     try:
         import matplotlib.pyplot as plt
@@ -1567,7 +1570,6 @@ def _cohens_d(x0: np.ndarray, x1: np.ndarray) -> float:
     m0, m1 = float(x0.mean()), float(x1.mean())
     s0 = float(x0.std(ddof=1)) if len(x0) > 1 else 0.0
     s1 = float(x1.std(ddof=1)) if len(x1) > 1 else 0.0
-    # pooled std
     n0, n1 = len(x0), len(x1)
     if n0 + n1 - 2 <= 0:
         return 0.0

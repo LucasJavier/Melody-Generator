@@ -1,4 +1,4 @@
-# snippet rápido (usalo en un Python REPL):
+# snippet rápido
 import numpy as np
 from melody_ea import load_dataset_dump
 Xe, ye, _ = load_dataset_dump(r'.\dumps\dataset_easy.npz')
